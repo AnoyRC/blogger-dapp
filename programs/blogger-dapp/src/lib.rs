@@ -49,14 +49,16 @@ pub mod blogger_dapp {
         Ok(())
     }
 
-    pub fn add_blog(ctx: Context<AddBlog> , blog_body: String) -> ProgramResult{
+    pub fn add_blog(ctx: Context<AddBlog> ,blog_title: String, blog_body: String) -> ProgramResult{
         let base_account = &mut ctx.accounts.base_account;
         let blog_account = &mut ctx.accounts.blog_account;
         let user = &mut ctx.accounts.user;
 
+        blog_account.blog_title = blog_title;
         blog_account.blog_body = blog_body;
         blog_account.likes = 0;
-        blog_account.user_address = *user.to_account_info().key;
+        blog_account.admin = *user.to_account_info().key;
+        blog_account.base_account = *base_account.to_account_info().key;
 
         base_account.total_blogs+=1;
         Ok(())
@@ -125,9 +127,11 @@ pub struct BaseAccount{
 
 #[account]
 pub struct BlogAccount{
+    pub blog_title: String,
     pub blog_body: String,
     pub likes: u64,
-    pub user_address: Pubkey
+    pub admin: Pubkey,
+    pub base_account: Pubkey
 }
 
 
