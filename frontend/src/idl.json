@@ -1,0 +1,178 @@
+{
+    "version": "0.1.0",
+    "name": "blogger_dapp",
+    "instructions": [
+      {
+        "name": "create",
+        "accounts": [
+          {
+            "name": "baseAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "user",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": []
+      },
+      {
+        "name": "withdraw",
+        "accounts": [
+          {
+            "name": "baseAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "user",
+            "isMut": true,
+            "isSigner": true
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "donate",
+        "accounts": [
+          {
+            "name": "baseAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "user",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      },
+      {
+        "name": "addBlog",
+        "accounts": [
+          {
+            "name": "blogAccount",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "baseAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "user",
+            "isMut": true,
+            "isSigner": true
+          },
+          {
+            "name": "systemProgram",
+            "isMut": false,
+            "isSigner": false
+          }
+        ],
+        "args": [
+          {
+            "name": "blogTitle",
+            "type": "string"
+          },
+          {
+            "name": "blogBody",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "addLike",
+        "accounts": [
+          {
+            "name": "blogAccount",
+            "isMut": true,
+            "isSigner": false
+          },
+          {
+            "name": "user",
+            "isMut": true,
+            "isSigner": true
+          }
+        ],
+        "args": []
+      }
+    ],
+    "accounts": [
+      {
+        "name": "BaseAccount",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "admin",
+              "type": "publicKey"
+            },
+            {
+              "name": "amountDonated",
+              "type": "u64"
+            },
+            {
+              "name": "totalBlogs",
+              "type": "u64"
+            }
+          ]
+        }
+      },
+      {
+        "name": "BlogAccount",
+        "type": {
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "blogTitle",
+              "type": "string"
+            },
+            {
+              "name": "blogBody",
+              "type": "string"
+            },
+            {
+              "name": "likes",
+              "type": "u64"
+            },
+            {
+              "name": "admin",
+              "type": "publicKey"
+            },
+            {
+              "name": "baseAccount",
+              "type": "publicKey"
+            }
+          ]
+        }
+      }
+    ],
+    "metadata": {
+      "address": "D2jGWop9j2ztWdVgkoa5cPM9t7FETdG7HoTEbERFnkGw"
+    }
+  }

@@ -1,15 +1,26 @@
-import { Connection,clusterApiUrl } from '@solana/web3.js';
-import { Provider, web3 } from '@project-serum/anchor';
+import { Connection,clusterApiUrl, PublicKey, SystemProgram, Keypair } from '@solana/web3.js';
+import { Program, AnchorProvider, web3, utils } from '@project-serum/anchor';
 import { useEffect, useState } from 'react';
 import { tests }  from './TestBlogs';
+import idl from './idl.json';
 import './App.css';
+import { use } from 'chai';
+
+const programID = new PublicKey(idl.metadata.address)
+const network = clusterApiUrl('devnet')
+
+const opts = {
+  preFlightCommitment : 'processed'
+}
 
 const App = () => {
   const [walletAddress, setWalletAddress] = useState(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [post, setPost] = useState([]);
-  const [registered, setRegistered] = useState(true);
+  const [registered, setRegistered] = useState(false);
+  const [baseAccounts , setBaseAccounts] = useState();
+  
 
   const checkIfWalletIsConnected = async() => {
     try {
@@ -23,6 +34,7 @@ const App = () => {
         })
         console.log('Connected with Public Key : ', response.publicKey.toString())
         setWalletAddress(response.publicKey.toString())
+        getBaseAccounts()
       }
     }else{
       console.log('Solana Object not found !, get a Phantom wallet ! ')
@@ -32,11 +44,66 @@ const App = () => {
     }
   }
 
+  const getProvider = () => {
+    const connection = new Connection(network, opts.preFlightCommitment)
+    const provider = new AnchorProvider(connection, window.solana, opts.preFlightCommitment)
+    return provider;
+  }
+
   const connectWallet = async() => {
     const { solana } = window;
     const response = await solana.connect()
     console.log('Connected with Public Key : ', response.publicKey.toString())
     setWalletAddress(response.publicKey.toString())
+    getBaseAccounts()
+  }
+
+  const loginBaseAccount = async() => {
+    const provider = getProvider();
+    const baseAccount = baseAccounts.filter((account)=> account.admin.toString() === provider.wallet.publicKey.toString());
+    console.log(baseAccount)
+  }
+
+  const getBaseAccounts = async() => {
+    const connection = new Connection(network, opts.preFlightCommitment);
+    const provider = getProvider();
+    const program = new Program(idl, programID, provider);
+    Promise.all(
+      (await connection.getProgramAccounts(programID)).map(
+        async (baseAccount) => ({
+          ...(await program.account.baseAccount.fetch(baseAccount.pubkey)),
+          pubkey: baseAccount.pubkey,
+        }) 
+      )
+    ).then((baseAccount)=> {
+      setBaseAccounts(baseAccount)
+    })
+  }
+
+  const createBaseAccount = async() => {
+    try {
+      loginBaseAccount()
+      const provider = getProvider();
+      const program = new Program(idl,programID,provider);
+      const [baseAccount] = await PublicKey.findProgramAddressSync(
+        [
+          utils.bytes.utf8.encode("POST_DEMO"),
+          provider.wallet.publicKey.toBuffer(),
+        ],
+        program.programId
+      )
+      await program.rpc.create({
+        accounts:{
+          baseAccount,
+          user : provider.wallet.publicKey,
+          systemProgram : SystemProgram.programId
+        },
+      })
+      console.log("Created a base account with address: ", baseAccount.toString())
+      setRegistered(true)
+    } catch (error) {
+      console.log("Error creating account", error)
+    }
   }
 
   const AddBlog = (event) => {
@@ -84,12 +151,13 @@ const App = () => {
               type="submit">
               Add Post</button>
           </form>) ||
-            <button className="self-center h-10 w-60 my-5 rounded-xl bg-blue-600 text-cyan-50 font-medium text-center" >
+            <button className="self-center h-10 w-60 my-5 rounded-xl bg-blue-600 text-cyan-50 font-medium text-center" 
+            onClick={createBaseAccount}>
             Do a one time registration</button>
         }
         <div className='self-center flex flex-col w-1/3'>
-          {post.map((post)=>(
-            <Post title = {post.title} body = {post.body}/>
+          {post.map((post,index)=>(
+            <Post key={index} title = {post.title} body = {post.body}/>
           ))}
         </div>
       </div>
