@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { tests }  from './TestBlogs';
 import idl from './idl.json';
 import './App.css';
-import { use } from 'chai';
+import { Buffer } from 'buffer/';
 
+window.Buffer =  Buffer;
 const programID = new PublicKey(idl.metadata.address)
 const network = clusterApiUrl('devnet')
 
@@ -64,7 +65,6 @@ const App = () => {
       const baseAccount = baseAccounts.filter((account)=> account.admin.toString() === provider.wallet.publicKey.toString());
       if(baseAccount[0] !== undefined){
         setBaseAccount(baseAccount[0].pubkey)
-        console.log(baseAccount[0].pubkey)
         setRegistered(true)
       }
       else{
@@ -77,7 +77,12 @@ const App = () => {
     const provider = getProvider();
     const program = new Program(idl, programID, provider);
     Promise.all(
-      (await connection.getProgramAccounts(programID)).map(
+      (await connection.getProgramAccounts(programID,{
+        filters: [
+          {
+            dataSize: 100, 
+          },
+        ]})).map(
         async (baseAccount) => ({
           ...(await program.account.baseAccount.fetch(baseAccount.pubkey)),
           pubkey: baseAccount.pubkey,
@@ -85,6 +90,7 @@ const App = () => {
       )
     ).then((baseAccount)=> {
       setBaseAccounts(baseAccount)
+      console.log(baseAccount)
     })
   }
 
@@ -109,15 +115,36 @@ const App = () => {
       console.log("Created a base account with address: ", baseAccount.toString())
       setBaseAccount(baseAccount)
       setRegistered(true)
-      console.log(baseAccount)
     } catch (error) {
       console.log("Error creating account", error)
     }
   }
 
-  const AddBlog = (event) => {
+  const AddBlog = async(event) => {
     event.preventDefault()
-    console.log(title,body);
+    if(title.length > 0 && body.length > 0){
+      console.log(title,body);
+      try {
+        const blog_account = Keypair.generate()
+        const provider = getProvider()
+        const program = new Program(idl, programID, provider)
+        await program.rpc.addBlog(title,body,{
+          accounts:{
+            blogAccount: blog_account.publicKey,
+            baseAccount: baseAccount,
+            user: provider.wallet.publicKey,
+            systemProgram: SystemProgram.programId
+          },
+          signers: [blog_account]
+        })
+        console.log("Added Blog Successfully")
+      } catch (error) {
+        console.error(error)
+      }
+    }
+    else{
+      console.log('Empty Input! Try Again')
+    }
     setTitle('');
     setBody('');
   }
