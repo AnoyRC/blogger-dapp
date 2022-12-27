@@ -1,7 +1,6 @@
 import { Connection,clusterApiUrl, PublicKey, SystemProgram, Keypair } from '@solana/web3.js';
-import { Program, AnchorProvider, web3, utils } from '@project-serum/anchor';
+import { Program, AnchorProvider, web3, utils, BN } from '@project-serum/anchor';
 import { useEffect, useState } from 'react';
-import { tests }  from './TestBlogs';
 import idl from './idl.json';
 import './App.css';
 import { Buffer } from 'buffer/';
@@ -18,10 +17,10 @@ const App = () => {
   const [walletAddress, setWalletAddress] = useState(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [post, setPost] = useState([]);
   const [registered, setRegistered] = useState(false);
   const [baseAccounts , setBaseAccounts] = useState();
   const [baseAccount, setBaseAccount] = useState({});
+  const [blogAccounts , setBlogAccounts] = useState()
   
 
   const checkIfWalletIsConnected = async() => {
@@ -37,6 +36,7 @@ const App = () => {
         console.log('Connected with Public Key : ', response.publicKey.toString())
         setWalletAddress(response.publicKey.toString())
         getBaseAccounts()
+        getBlogs()
       }
     }else{
       console.log('Solana Object not found !, get a Phantom wallet ! ')
@@ -58,6 +58,7 @@ const App = () => {
     console.log('Connected with Public Key : ', response.publicKey.toString())
     setWalletAddress(response.publicKey.toString())
     getBaseAccounts()
+    getBlogs()
   }
 
   const loginBaseAccount = async() => {
@@ -120,6 +121,28 @@ const App = () => {
     }
   }
 
+  const getBlogs = async() => {
+    const connection = new Connection(network, opts.preFlightCommitment);
+    const provider = getProvider();
+    const program = new Program(idl, programID, provider);
+    Promise.all(
+      (await connection.getProgramAccounts(programID,{
+        filters: [
+          {
+            dataSize: 9000, 
+          },
+        ]})).map(
+        async (blogAccount) => ({
+          ...(await program.account.blogAccount.fetch(blogAccount.pubkey)),
+          pubkey: blogAccount.pubkey,
+        }) 
+      )
+    ).then((blogAccount)=> {
+      setBlogAccounts(blogAccount)
+      console.log(blogAccount)
+    })
+  }
+
   const AddBlog = async(event) => {
     event.preventDefault()
     if(title.length > 0 && body.length > 0){
@@ -138,6 +161,7 @@ const App = () => {
           signers: [blog_account]
         })
         console.log("Added Blog Successfully")
+        getBlogs()
       } catch (error) {
         console.error(error)
       }
@@ -192,8 +216,15 @@ const App = () => {
             Login / Signup</button>
         }
         <div className='self-center flex flex-col w-1/3'>
-          {post.map((post,index)=>(
-            <Post key={index} title = {post.title} body = {post.body}/>
+          {blogAccounts && blogAccounts.map((post,index)=>(
+            <Post 
+              key={index} 
+              title = {post.blogTitle} 
+              body = {post.blogBody} 
+              pubkey = {post.pubkey} 
+              likes = {post.likes}
+              baseAccount = {post.baseAccount}
+            />
           ))}
         </div>
       </div>
@@ -205,21 +236,53 @@ const App = () => {
       <h1 className='text-cyan-50 mx-3 my-4 text-4xl'>{props.title}</h1>
       <p className='text-cyan-50 mx-3 text-lg'>{props.body}</p>
       <div className='flex justify-center'>
-        <button className="self-center h-10 w-40 my-5 rounded-xl bg-blue-600 text-cyan-50 mx-4 font-medium text-center" >
-          Like
+        <button className="self-center h-10 w-40 my-5 rounded-xl bg-blue-600 text-cyan-50 mx-4 font-medium text-center" onClick={() => (registered && AddLike(props.pubkey))}>
+          Like - {props.likes.toString()}
         </button>
-        <button className="self-center h-10 w-40 my-5 rounded-xl bg-blue-600 text-cyan-50 mx-4 font-medium text-center" >
+        <button className="self-center h-10 w-40 my-5 rounded-xl bg-blue-600 text-cyan-50 mx-4 font-medium text-center" onClick={() => (registered && donate(props.baseAccount))}>
           Donate
         </button>
       </div>
     </div>
   }
 
+  const AddLike = async(pubkey) => {
+    try {
+      const provider = getProvider();
+      const program = new Program(idl, programID, provider);
+      await program.rpc.addLike({
+        accounts:{
+          blogAccount:pubkey,
+          user: provider.wallet.publicKey
+        }
+      })
+      getBlogs();
+    } catch (error) {
+      console.error("Error liking the post",error)
+    }
+  }
+
+  const donate = async(baseAccount) => {
+    try {
+      const provider = getProvider()
+      const program = new Program(idl,programID,provider)
+      await program.rpc.donate(new BN(0.2 * web3.LAMPORTS_PER_SOL), {
+        accounts: {
+          baseAccount: baseAccount,
+          user: provider.wallet.publicKey,
+          systemProgram: SystemProgram.programId
+        }
+      })
+      console.log("Successfully donated 0.2 sol to the blog creator")
+    } catch (error) {
+      console.log("Error Donating ", error)
+    }
+  }
+
   useEffect(() => {
     const onLoad = async () => {
       await checkIfWalletIsConnected();
     }
-    setPost(tests);
     window.addEventListener('load', onLoad);
     return () => window.removeEventListener('load', onLoad)
   },[])
