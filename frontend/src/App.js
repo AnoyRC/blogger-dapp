@@ -198,7 +198,7 @@ const App = () => {
           <div className='flex justify-center'>
             <div className='flex self-center rounded-md bg-neutral-600 h-10 w-40 mt-3 mx-3 text-cyan-50 font-medium text-center justify-center'>
               <h1 className='self-center text-cyan-50 text-center'>
-                Wallet Balance : {baseAccount.amountDonated.toString() / web3.LAMPORTS_PER_SOL}</h1>
+                Total Donation : {baseAccount.amountDonated.toString() / web3.LAMPORTS_PER_SOL}</h1>
               </div>
             <button className="self-center h-10 w-40 mt-3 rounded-xl bg-blue-600 text-cyan-50 font-medium text-center" onClick={withdraw}>
               Withdraw</button>
