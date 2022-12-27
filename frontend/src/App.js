@@ -20,6 +20,7 @@ const App = () => {
   const [post, setPost] = useState([]);
   const [registered, setRegistered] = useState(false);
   const [baseAccounts , setBaseAccounts] = useState();
+  const [baseAccount, setBaseAccount] = useState({});
   
 
   const checkIfWalletIsConnected = async() => {
@@ -59,9 +60,16 @@ const App = () => {
   }
 
   const loginBaseAccount = async() => {
-    const provider = getProvider();
-    const baseAccount = baseAccounts.filter((account)=> account.admin.toString() === provider.wallet.publicKey.toString());
-    console.log(baseAccount)
+      const provider = getProvider();
+      const baseAccount = baseAccounts.filter((account)=> account.admin.toString() === provider.wallet.publicKey.toString());
+      if(baseAccount[0] !== undefined){
+        setBaseAccount(baseAccount[0].pubkey)
+        console.log(baseAccount[0].pubkey)
+        setRegistered(true)
+      }
+      else{
+        createBaseAccount();
+      }
   }
 
   const getBaseAccounts = async() => {
@@ -82,7 +90,6 @@ const App = () => {
 
   const createBaseAccount = async() => {
     try {
-      loginBaseAccount()
       const provider = getProvider();
       const program = new Program(idl,programID,provider);
       const [baseAccount] = await PublicKey.findProgramAddressSync(
@@ -97,10 +104,12 @@ const App = () => {
           baseAccount,
           user : provider.wallet.publicKey,
           systemProgram : SystemProgram.programId
-        },
+       },
       })
       console.log("Created a base account with address: ", baseAccount.toString())
+      setBaseAccount(baseAccount)
       setRegistered(true)
+      console.log(baseAccount)
     } catch (error) {
       console.log("Error creating account", error)
     }
@@ -152,8 +161,8 @@ const App = () => {
               Add Post</button>
           </form>) ||
             <button className="self-center h-10 w-60 my-5 rounded-xl bg-blue-600 text-cyan-50 font-medium text-center" 
-            onClick={createBaseAccount}>
-            Do a one time registration</button>
+            onClick={loginBaseAccount}>
+            Login / Signup</button>
         }
         <div className='self-center flex flex-col w-1/3'>
           {post.map((post,index)=>(
