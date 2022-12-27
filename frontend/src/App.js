@@ -65,7 +65,7 @@ const App = () => {
       const provider = getProvider();
       const baseAccount = baseAccounts.filter((account)=> account.admin.toString() === provider.wallet.publicKey.toString());
       if(baseAccount[0] !== undefined){
-        setBaseAccount(baseAccount[0].pubkey)
+        setBaseAccount(baseAccount[0])
         setRegistered(true)
       }
       else{
@@ -154,7 +154,7 @@ const App = () => {
         await program.rpc.addBlog(title,body,{
           accounts:{
             blogAccount: blog_account.publicKey,
-            baseAccount: baseAccount,
+            baseAccount: baseAccount.pubkey,
             user: provider.wallet.publicKey,
             systemProgram: SystemProgram.programId
           },
@@ -194,6 +194,16 @@ const App = () => {
         <h1 className="text-3xl font-normal mt-10 self-center text-cyan-50 text-center">
           Welcome to the Web3 Blogger App ! 
         </h1>
+        {(registered && 
+          <div className='flex justify-center'>
+            <div className='flex self-center rounded-md bg-neutral-600 h-10 w-40 mt-3 mx-3 text-cyan-50 font-medium text-center justify-center'>
+              <h1 className='self-center text-cyan-50 text-center'>
+                Wallet Balance : {baseAccount.amountDonated.toString() / web3.LAMPORTS_PER_SOL}</h1>
+              </div>
+            <button className="self-center h-10 w-40 mt-3 rounded-xl bg-blue-600 text-cyan-50 font-medium text-center" onClick={withdraw}>
+              Withdraw</button>
+          </div>
+        )}
         {(registered && 
           <form className='self-center flex flex-col w-1/3' onSubmit={AddBlog}>
             <input className="bg-neutral-500 h-10 w-full rounded-md text-lg mt-5 text-cyan-50" 
@@ -277,6 +287,23 @@ const App = () => {
     } catch (error) {
       console.log("Error Donating ", error)
     }
+  }
+
+  const withdraw = async() => {
+    try {
+      const provider = getProvider();
+      const program = new Program(idl, programID, provider)
+      await program.rpc.withdraw(new BN(0.2 * web3.LAMPORTS_PER_SOL),{
+        accounts:{
+          baseAccount: baseAccount.pubkey,
+          user: provider.wallet.publicKey
+        }
+      })
+      console.log('sucessfully added 0.2 sol in your wallet')
+    } catch (error) {
+      console.error('Error withdrawing funds : ', error)
+    }
+
   }
 
   useEffect(() => {
