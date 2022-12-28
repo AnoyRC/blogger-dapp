@@ -5,6 +5,7 @@ import idl from './idl.json';
 import './App.css';
 import { Buffer } from 'buffer/';
 
+
 window.Buffer =  Buffer;
 const programID = new PublicKey(idl.metadata.address)
 const network = clusterApiUrl('devnet')
@@ -114,7 +115,11 @@ const App = () => {
        },
       })
       console.log("Created a base account with address: ", baseAccount.toString())
-      setBaseAccount(baseAccount)
+      const mainAccount = {
+        ...(await program.account.baseAccount.fetch(baseAccount)),
+        pubkey: baseAccount,
+      }
+      setBaseAccount(mainAccount)
       setRegistered(true)
     } catch (error) {
       console.log("Error creating account", error)
